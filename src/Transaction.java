@@ -1,23 +1,25 @@
+import java.io.Serializable;
+import java.security.PublicKey;
 import java.util.ArrayList;
 
 
-public class Transaction {
+public class Transaction implements Serializable{
 
 	private int id;
 	private String data;
-	private int srcID;
+	private PublicKey srcPK;
 	private ArrayList<Integer> receiversIDs = new ArrayList<Integer>();
 	
 	public ArrayList<Integer> getReceiversIDs() {
 		return receiversIDs;
 	}
 
-	public int getSrcID() {
-		return srcID;
+	public PublicKey getSrcPK() {
+		return srcPK;
 	}
 
-	public void setSrcID(int srcID) {
-		this.srcID = srcID;
+	public void setSrcPK(PublicKey srcPK) {
+		this.srcPK = srcPK;
 	}
 
 	public Transaction(int id){

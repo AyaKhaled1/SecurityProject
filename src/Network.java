@@ -1,3 +1,5 @@
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
 public class Network {
@@ -10,7 +12,8 @@ public class Network {
 	public Network() throws Exception{
 		
 		networkNodes = new ArrayList<Node>();
-		startBlock = new Block("2349237082");
+		startBlock = new Block("2349237082", null);
+		startBlock.encode();
 		generateNodes();
 	}
 	
@@ -50,7 +53,7 @@ public class Network {
 			Node n = networkNodes.get(randomNode);
 			System.out.println("From Node: " + n.getId());
 			Transaction message = n.generateTransaction();
-			message.setSrcID(randomNode);
+			message.setSrcPK(networkNodes.get(randomNode).getPublicKey());
 			sendTransaction(n, message);
 		}
 	}
@@ -69,7 +72,7 @@ public class Network {
 	    	
 	    	randomIndices.add(peerNumber);
 	    	
-	    	if(!message.getReceiversIDs().contains(peerNumber) && message.getSrcID() != peerNumber){
+	    	if(!message.getReceiversIDs().contains(peerNumber) && message.getSrcPK() != networkNodes.get(peerNumber).getPublicKey()){
 	    		message.getReceiversIDs().add(peerNumber);
 		    	networkNodes.get(peerNumber).receiveTransaction(message);
 		    	sendTransaction(networkNodes.get(peerNumber), message);
@@ -77,7 +80,7 @@ public class Network {
 	    }   	    
 	}
 	
-	public void announceBlock(Node n, Block block){
+	public void announceBlock(Node n, Block block) throws UnsupportedEncodingException, NoSuchAlgorithmException{
 		
 		int randomNpeers= (int)(Math.random()*n.getPeers().size())+1;
 		ArrayList<Integer> randomIndices = new ArrayList<Integer>();
@@ -91,11 +94,10 @@ public class Network {
 	    	
 	    	randomIndices.add(peerNumber);
 	    	
-	    	if(!block.getReceiversIDs().contains(peerNumber) && block.getSrcID() != peerNumber){
+	    	if(!block.getReceiversIDs().contains(peerNumber) && block.getSrcPK() != networkNodes.get(peerNumber).getPublicKey()){
 	    		block.getReceiversIDs().add(peerNumber);
-	    		Boolean verified = networkNodes.get(peerNumber).receiveBlock(block);
-	    		if(verified)
-	    			announceBlock(networkNodes.get(peerNumber), block);
+	    		networkNodes.get(peerNumber).receiveBlock(block);
+	    		announceBlock(networkNodes.get(peerNumber), block);
 	    	}
 		}
 	}
@@ -106,6 +108,6 @@ public class Network {
 		n.sendTransactions();
 		
 		for(int i = 0; i < n.networkNodes.size();i++)
-			System.out.println("Node " + i + " :" + n.networkNodes.get(i).getTransactions());
+			System.out.println("Node " + i + " :\n" + n.networkNodes.get(i));
 	}
 }

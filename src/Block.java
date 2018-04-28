@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -18,13 +19,41 @@ public class Block implements Serializable{
 	private ArrayList<Transaction> transactions;
 	private String signature;
 	private ArrayList<Integer> receiversIDs = new ArrayList<Integer>();
-	private int srcID;
+	private PublicKey srcPK;
 	
-	public Block(String prevHash) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+	
+	public Block(String prevHash, PublicKey publicKey) throws UnsupportedEncodingException, NoSuchAlgorithmException {
 		
 		transactions = new ArrayList<Transaction>();
 		this.prevHash = prevHash;
-		encode();
+		this.srcPK = publicKey;
+	}
+	
+	public Boolean validate() throws UnsupportedEncodingException, NoSuchAlgorithmException{
+		
+    	String currentHash = "";
+        String encodedTransactions = encodeTransactions(this.transactions);
+        String result = "";
+        result += prevHash;
+        result += encodedTransactions;
+        int nonce = 0;
+        result += nonce;
+        currentHash = hash(result);
+        
+        while(!currentHash.equals(this.id)){
+        	nonce++;
+        	if(nonce > 10000){
+        		return false;
+        	}
+        	result = "";
+            result += prevHash;
+            result += encodedTransactions;
+            result += nonce;
+            currentHash = hash(result);
+        }
+        
+        return true;
+		
 	}
 	
 	public String getPrevHash() {
@@ -43,12 +72,12 @@ public class Block implements Serializable{
 		this.signature = signature;
 	}
 
-	public int getSrcID() {
-		return srcID;
+	public PublicKey getSrcPK() {
+		return srcPK;
 	}
 
-	public void setSrcID(int srcID) {
-		this.srcID = srcID;
+	public void setSrcID(PublicKey srcPK) {
+		this.srcPK = srcPK;
 	}
 
 	public String getId() {
@@ -78,7 +107,7 @@ public class Block implements Serializable{
     	byte[] bytesOfMessage = values.getBytes("UTF-8");
     	MessageDigest md = MessageDigest.getInstance("MD5");
     	byte [] thedigest = md.digest(bytesOfMessage);
-    	String res = Arrays.toString(thedigest).replace(", ", "").replace("[", "").replace("]", "");
+    	String res = Base64.getEncoder().encodeToString(thedigest);
     	
 		return res;
     }
@@ -129,7 +158,7 @@ public class Block implements Serializable{
 	public String toString() {
 		return "Block [id=" + id + ", prevHash=" + prevHash + ", transactions="
 				+ transactions + ", signature=" + signature + ", receiversIDs="
-				+ receiversIDs + ", srcID=" + srcID + "]";
+				+ receiversIDs + "]";
 	}
 
 }

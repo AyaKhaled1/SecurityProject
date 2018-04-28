@@ -1,3 +1,4 @@
+import java.io.UnsupportedEncodingException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -5,7 +6,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Base64;
+import java.util.HashMap;
 
 public class Node {
 	
@@ -16,7 +18,8 @@ public class Node {
 	private KeyPair keyPair;
     private PublicKey publicKey;
     private PrivateKey privateKey;
-    private ArrayList<Block> blockChain;
+    private Block blockChain;
+    private HashMap<String, Block> all_blocks;
 	
 	public Node(int id, ArrayList<Integer> peers, Block startBlock) throws NoSuchAlgorithmException {
 	
@@ -27,8 +30,9 @@ public class Node {
 		keyPair = keyGen.generateKeyPair();
 		publicKey = keyPair.getPublic();
 		privateKey = keyPair.getPrivate();
-		blockChain = new ArrayList<Block>();
-		blockChain.add(startBlock);
+		blockChain = startBlock;
+		all_blocks = new HashMap<String, Block>();
+		all_blocks.put(startBlock.getId(), startBlock);
 	}
    
 	public PublicKey getPublicKey() {
@@ -65,12 +69,8 @@ public class Node {
         signature.update(transaction.getData().getBytes());
         byte [] digitalSignature = signature.sign();
        
-        String concatenatedSignature="";
-        for(int i=0;i<digitalSignature.length;i++){
-        	concatenatedSignature+=digitalSignature[i];
-        }
-
-        transaction.setData(concatenatedSignature+transaction.getData());
+        String encodedSignature= Base64.getEncoder().encodeToString(digitalSignature);
+        transaction.setData(encodedSignature+transaction.getData());
         
         return transaction;
 	}
@@ -81,7 +81,7 @@ public class Node {
         signature.initSign(privateKey);
         signature.update(Block.toString(b).getBytes());
         byte [] digitalSignature = signature.sign();
-        String res = Arrays.toString(digitalSignature).replace(", ", "").replace("[", "").replace("]", "");
+        String res = Base64.getEncoder().encodeToString(digitalSignature);
         b.setSignature(res);
         
 	}
@@ -91,31 +91,59 @@ public class Node {
 		transactions.add(message);
 		if(transactions.size() == 5){
 			
-			Block b = new Block(blockChain.get(blockChain.size()-1).getId());
+			Block b = new Block(this.blockChain.getId(), this.publicKey);
 			b.getTransactions().addAll(transactions);
+			b.encode();
+			signBlock(b);
+			receiveBlock(b);
 			transactions.clear();
 			Network.getInstance().announceBlock(this, b);
 		}
 	}
+
 	
-	public Boolean receiveBlock(Block block){
+	public int findLengthOfChain(Block b){
+
+		String startHash = "2349237082";
+		String previousHash = b.getPrevHash();
 		
-		Boolean verified = verifyBlock(block);
-		if(verified){
-			blockChain.add(block);
-			System.out.println(block);
+		if(previousHash.equals(startHash) || !all_blocks.containsKey(previousHash)){
+			return 0;
 		}
-		return verified;
+		
+		return 1 + findLengthOfChain(all_blocks.get(previousHash));
 	}
 	
-	public Boolean verifyBlock(Block block) {
-		// TODO Auto-generated method stub
-		return true;
+	public void printBlockChain(Block b){
+
+		String startHash = "2349237082";
+		String previousHash = b.getPrevHash();
+		
+		if(previousHash.equals(startHash) || !all_blocks.containsKey(previousHash)){
+			System.out.println(b);
+		}
+		else{
+			printBlockChain(all_blocks.get(previousHash));
+			System.out.println(b.toString());
+		}
+	}
+	
+	public void receiveBlock(Block block) throws UnsupportedEncodingException, NoSuchAlgorithmException{
+		
+		all_blocks.put(block.getId(), block);
+
+		if(block.validate()){
+			if(findLengthOfChain(blockChain) < findLengthOfChain(block)){
+				blockChain = block;
+			}
+
+		}
 	}
 
 	public String toString() {
 		return "Node [id=" + id + ", peers=" + peers + ", transactions="
-				+ transactions + ", publicKey=" + publicKey + "]";
+				+ transactions + ", blockChain=" + blockChain + ", all_blocks="
+				+ all_blocks + "]";
 	}
-	
+
 }
