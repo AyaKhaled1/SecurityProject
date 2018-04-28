@@ -80,7 +80,7 @@ public class Network {
 	    }   	    
 	}
 	
-	public void announceBlock(Node n, Block block) throws UnsupportedEncodingException, NoSuchAlgorithmException{
+	public void announceBlock(Node n, Block block) throws Exception{
 		
 		int randomNpeers= (int)(Math.random()*n.getPeers().size())+1;
 		ArrayList<Integer> randomIndices = new ArrayList<Integer>();

@@ -42,7 +42,7 @@ public class Block implements Serializable{
         
         while(!currentHash.equals(this.id)){
         	nonce++;
-        	if(nonce > 10000){
+        	if(nonce > 1000){
         		return false;
         	}
         	result = "";

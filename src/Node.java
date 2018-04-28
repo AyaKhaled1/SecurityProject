@@ -127,16 +127,25 @@ public class Node {
 			System.out.println(b.toString());
 		}
 	}
-	
-	public void receiveBlock(Block block) throws UnsupportedEncodingException, NoSuchAlgorithmException{
+
+	public boolean verifySignature(Block block) throws Exception{
+		Signature signature = Signature.getInstance("SHA1withDSA", "SUN");
+		signature.initVerify(block.getSrcPK());
+		signature.update(Block.toString(block).getBytes());
+		byte [] sig =  Base64.getDecoder().decode(block.getSignature());
+
+		boolean verified = signature.verify(sig);
+		return verified;
+	}
+
+	public void receiveBlock(Block block) throws Exception{
 		
 		all_blocks.put(block.getId(), block);
 
-		if(block.validate()){
+		if(block.validate() && verifySignature(block)){
 			if(findLengthOfChain(blockChain) < findLengthOfChain(block)){
 				blockChain = block;
 			}
-
 		}
 	}
 
