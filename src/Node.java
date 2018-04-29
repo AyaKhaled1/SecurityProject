@@ -1,4 +1,3 @@
-import java.io.UnsupportedEncodingException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -14,11 +13,12 @@ public class Node {
 	private int id;
 	private ArrayList<Integer> peers;
 	private ArrayList<Transaction> transactions;
+	private ArrayList<Block> blockChain;
 	private KeyPairGenerator keyGen;
 	private KeyPair keyPair;
     private PublicKey publicKey;
     private PrivateKey privateKey;
-    private Block blockChain;
+    private Block BC_lastBlock;
     private HashMap<String, Block> all_blocks;
 	
 	public Node(int id, ArrayList<Integer> peers, Block startBlock) throws NoSuchAlgorithmException {
@@ -30,9 +30,11 @@ public class Node {
 		keyPair = keyGen.generateKeyPair();
 		publicKey = keyPair.getPublic();
 		privateKey = keyPair.getPrivate();
-		blockChain = startBlock;
+		BC_lastBlock = startBlock;
 		all_blocks = new HashMap<String, Block>();
 		all_blocks.put(startBlock.getId(), startBlock);
+		blockChain = new ArrayList<Block>();
+		blockChain.add(startBlock);
 	}
    
 	public PublicKey getPublicKey() {
@@ -79,19 +81,21 @@ public class Node {
 		
 		Signature signature = Signature.getInstance("SHA1withDSA", "SUN");
         signature.initSign(privateKey);
-        signature.update(Block.toString(b).getBytes());
+        signature.update(Block.toString(b.getTransactions()).getBytes());
+        
         byte [] digitalSignature = signature.sign();
         String res = Base64.getEncoder().encodeToString(digitalSignature);
         b.setSignature(res);
-        
 	}
 	
 	public void receiveTransaction(Transaction message) throws Exception{
 		
 		transactions.add(message);
+		Network.writer.println("Transaction Received By Node: " + id);
+		
 		if(transactions.size() == 5){
 			
-			Block b = new Block(this.blockChain.getId(), this.publicKey);
+			Block b = new Block(this.BC_lastBlock.getId(), this.publicKey);
 			b.getTransactions().addAll(transactions);
 			b.encode();
 			signBlock(b);
@@ -101,7 +105,6 @@ public class Node {
 		}
 	}
 
-	
 	public int findLengthOfChain(Block b){
 
 		String startHash = "2349237082";
@@ -114,26 +117,40 @@ public class Node {
 		return 1 + findLengthOfChain(all_blocks.get(previousHash));
 	}
 	
-	public void printBlockChain(Block b){
+	public String printBlockChain(Block b){
 
 		String startHash = "2349237082";
 		String previousHash = b.getPrevHash();
 		
 		if(previousHash.equals(startHash) || !all_blocks.containsKey(previousHash)){
-			System.out.println(b);
+			return b.toString();
 		}
 		else{
-			printBlockChain(all_blocks.get(previousHash));
-			System.out.println(b.toString());
+			return printBlockChain(all_blocks.get(previousHash)) + "\n" + b.toString();
+		}
+	}
+	
+	public void updateBlockChain(Block b){
+
+		String startHash = "2349237082";
+		String previousHash = b.getPrevHash();
+		
+		if(previousHash.equals(startHash) || !all_blocks.containsKey(previousHash)){
+			blockChain.add(b);
+		}
+		else{
+			updateBlockChain(all_blocks.get(previousHash));
+			blockChain.add(b);
 		}
 	}
 
 	public boolean verifySignature(Block block) throws Exception{
+		
 		Signature signature = Signature.getInstance("SHA1withDSA", "SUN");
 		signature.initVerify(block.getSrcPK());
-		signature.update(Block.toString(block).getBytes());
+		signature.update(Block.toString(block.getTransactions()).getBytes());
 		byte [] sig =  Base64.getDecoder().decode(block.getSignature());
-
+		
 		boolean verified = signature.verify(sig);
 		return verified;
 	}
@@ -143,16 +160,36 @@ public class Node {
 		all_blocks.put(block.getId(), block);
 
 		if(block.validate() && verifySignature(block)){
-			if(findLengthOfChain(blockChain) < findLengthOfChain(block)){
-				blockChain = block;
+			
+			Network.writer.println("Block Received and Verified by Node: " + id);
+			
+			if(findLengthOfChain(BC_lastBlock) < findLengthOfChain(block)){
+				BC_lastBlock = block;
+				Network.writer.println("Block Chain Updated");
+				blockChain = new ArrayList<Block>();
+				updateBlockChain(BC_lastBlock);
 			}
 		}
 	}
+	
+	public String getOrphanedBlocks(){
+		
+		ArrayList<Block> blocks = new ArrayList<Block>(all_blocks.values());
+		String s = "";
+		
+		for(int i = 0; i < blocks.size(); i++){
+			if(!blockChain.contains(blocks.get(i))){
+				s+= blocks.get(i).toString() + "\n";
+			}
+		}
+		return s;
+	}
 
 	public String toString() {
-		return "Node [id=" + id + ", peers=" + peers + ", transactions="
-				+ transactions + ", blockChain=" + blockChain + ", all_blocks="
-				+ all_blocks + "]";
+		return  "Node [id=" + id + ", peers=" + peers 
+					+ "\ntransactions not in blocks: \n" + transactions 
+					+ "\nBlock Chain\n" + printBlockChain(BC_lastBlock)
+					+ "\nOrphaned Blocks: \n" + getOrphanedBlocks() + "]";
 	}
 
 }

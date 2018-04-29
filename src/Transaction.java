@@ -2,7 +2,6 @@ import java.io.Serializable;
 import java.security.PublicKey;
 import java.util.ArrayList;
 
-
 public class Transaction implements Serializable{
 
 	private int id;

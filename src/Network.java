@@ -7,15 +7,15 @@ public class Network {
 	private Block startBlock;
 	public static int idCount = 1;
 	public static Network network;
-	PrintWriter writer;
+	public static PrintWriter writer;
 	
 	public Network() throws Exception{
 		
 		networkNodes = new ArrayList<Node>();
+		writer = new PrintWriter("output.txt", "UTF-8");
 		startBlock = new Block("2349237082", null);
 		startBlock.encode();
 		generateNodes();
-		writer = new PrintWriter("output.txt", "UTF-8");
 	}
 	
 	public static Network getInstance() throws Exception{
@@ -52,7 +52,8 @@ public class Network {
 				randomNode = (int)(Math.random()*networkNodes.size());
 			
 			Node n = networkNodes.get(randomNode);
-			writer.println("From Node: " + n.getId());
+			System.out.println("Transaction From Node: " + n.getId());
+			writer.println("Transaction From Node: " + n.getId());
 			Transaction message = n.generateTransaction();
 			message.setSrcPK(networkNodes.get(randomNode).getPublicKey());
 			sendTransaction(n, message);
@@ -85,6 +86,7 @@ public class Network {
 		
 		int randomNpeers= (int)(Math.random()*n.getPeers().size())+1;
 		ArrayList<Integer> randomIndices = new ArrayList<Integer>();
+		writer.println("Announced Block by Node " + n.getId());
 		
 		for(int i = 0; i < randomNpeers; i++){
 			
@@ -107,13 +109,13 @@ public class Network {
 		
 		Network n = Network.getInstance();
 		n.sendTransactions();
-		n.writer.println();
-		n.writer.println("Network Nodes:");
 		
-		for(int i = 0; i < n.networkNodes.size();i++){
-			n.writer.println();
-			n.writer.println("Node " + i + " :\n" + n.networkNodes.get(i));
-		}
-		n.writer.close();
+		writer.println();
+		writer.println("Network Nodes:");
+		
+		for(int i = 0; i < n.networkNodes.size();i++)
+			writer.println("Node " + i + " :\n" + n.networkNodes.get(i));
+		
+		writer.close();
 	}
 }

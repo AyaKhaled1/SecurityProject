@@ -9,7 +9,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 
 public class Block implements Serializable{
@@ -156,8 +155,7 @@ public class Block implements Serializable{
     }
 
 	public String toString() {
-		return "Block [id=" + id + ", prevHash=" + prevHash + ", transactions="
-				+ transactions + ", signature=" + signature + ", receiversIDs="
+		return "Block [id=" + id + ", prevHash=" + prevHash + ", signature=" + signature + ", receiversIDs="
 				+ receiversIDs + "]";
 	}
 
