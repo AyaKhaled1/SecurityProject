@@ -1,5 +1,4 @@
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
 public class Network {
@@ -8,6 +7,7 @@ public class Network {
 	private Block startBlock;
 	public static int idCount = 1;
 	public static Network network;
+	PrintWriter writer;
 	
 	public Network() throws Exception{
 		
@@ -15,6 +15,7 @@ public class Network {
 		startBlock = new Block("2349237082", null);
 		startBlock.encode();
 		generateNodes();
+		writer = new PrintWriter("output.txt", "UTF-8");
 	}
 	
 	public static Network getInstance() throws Exception{
@@ -51,7 +52,7 @@ public class Network {
 				randomNode = (int)(Math.random()*networkNodes.size());
 			
 			Node n = networkNodes.get(randomNode);
-			System.out.println("From Node: " + n.getId());
+			writer.println("From Node: " + n.getId());
 			Transaction message = n.generateTransaction();
 			message.setSrcPK(networkNodes.get(randomNode).getPublicKey());
 			sendTransaction(n, message);
@@ -106,8 +107,13 @@ public class Network {
 		
 		Network n = Network.getInstance();
 		n.sendTransactions();
+		n.writer.println();
+		n.writer.println("Network Nodes:");
 		
-		for(int i = 0; i < n.networkNodes.size();i++)
-			System.out.println("Node " + i + " :\n" + n.networkNodes.get(i));
+		for(int i = 0; i < n.networkNodes.size();i++){
+			n.writer.println();
+			n.writer.println("Node " + i + " :\n" + n.networkNodes.get(i));
+		}
+		n.writer.close();
 	}
 }
